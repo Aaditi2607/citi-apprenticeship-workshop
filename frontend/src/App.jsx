@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -35,6 +35,7 @@ import {
   Snackbar,
   Alert,
   Divider,
+  MenuItem,
   InputAdornment
 } from '@mui/material';
 import {
@@ -172,6 +173,8 @@ export default function App() {
   const [employees, setEmployees] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -409,11 +412,27 @@ export default function App() {
     fetchDashboard();
   }, []);
 
+  const statusOptions = useMemo(() => (
+    [...new Set(employees.map(emp => emp.status).filter(Boolean))].sort()
+  ), [employees]);
+
+  const roleOptions = useMemo(() => (
+    [...new Set(employees.map(emp => emp.role).filter(Boolean))].sort()
+  ), [employees]);
+
   const filteredEmployees = employees.filter(emp => {
     const fullName = emp.full_name ?? emp.name ?? '';
     const email = emp.email ?? '';
+    const role = emp.role ?? '';
+    const status = emp.status ?? '';
     const term = search.trim().toLowerCase();
-    return fullName.toLowerCase().includes(term) || email.toLowerCase().includes(term);
+    const matchesSearch = !term
+      || fullName.toLowerCase().includes(term)
+      || email.toLowerCase().includes(term)
+      || role.toLowerCase().includes(term);
+    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+    const matchesRole = roleFilter === 'all' || role === roleFilter;
+    return matchesSearch && matchesStatus && matchesRole;
   });
 
   const chartColors = ['#2563eb', '#0f766e', '#f59e0b', '#7c3aed'];
@@ -748,21 +767,57 @@ export default function App() {
                 >
                   Add Employee
                 </Button>
-                <TextField
-                  size="small"
-                  placeholder="Search by name or email"
-                  value={search}
-                  onChange={event => setSearch(event.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    )
-                  }}
-                  sx={{ width: { xs: '100%', sm: 320 }, '& .MuiOutlinedInput-root': { borderRadius: 2, background: '#ffffff' } }}
-                />
               </Box>
+            </Box>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: 'minmax(260px, 1fr) 220px 220px' },
+                gap: 1.5,
+                alignItems: 'center',
+                mb: 2.5
+              }}
+            >
+              <TextField
+                size="small"
+                placeholder="Search name, email, or role"
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  )
+                }}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, background: '#ffffff' } }}
+              />
+              <TextField
+                select
+                size="small"
+                label="Status"
+                value={statusFilter}
+                onChange={event => setStatusFilter(event.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, background: '#ffffff' } }}
+              >
+                <MenuItem value="all">All statuses</MenuItem>
+                {statusOptions.map(status => (
+                  <MenuItem key={status} value={status}>{status}</MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                size="small"
+                label="Role"
+                value={roleFilter}
+                onChange={event => setRoleFilter(event.target.value)}
+                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, background: '#ffffff' } }}
+              >
+                <MenuItem value="all">All roles</MenuItem>
+                {roleOptions.map(role => (
+                  <MenuItem key={role} value={role}>{role}</MenuItem>
+                ))}
+              </TextField>
             </Box>
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -786,7 +841,7 @@ export default function App() {
                     {filteredEmployees.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-                          <Typography color="text.secondary">No employees match your search.</Typography>
+                          <Typography color="text.secondary">No employees match your search or filters.</Typography>
                         </TableCell>
                       </TableRow>
                     ) : (
