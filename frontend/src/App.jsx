@@ -200,6 +200,43 @@ export default function App() {
     }
   };
 
+  const loadAnalytics = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/python-service/analytics/dashboard');
+      const json = response.ok ? await response.json() : null;
+      const analyticsPayload = json?.data ?? json ?? {};
+      const normalizedAnalytics = {
+        total_employees: typeof analyticsPayload.total_employees === 'number' 
+          ? analyticsPayload.total_employees 
+          : (typeof analyticsPayload.total_staff === 'number' ? analyticsPayload.total_staff : fallbackAnalytics.total_employees),
+        average_performance: typeof analyticsPayload.average_rating === 'number'
+          ? analyticsPayload.average_rating
+          : (typeof analyticsPayload.average_performance === 'number' ? analyticsPayload.average_performance : fallbackAnalytics.average_performance),
+        promotion_ready: typeof analyticsPayload.promotion_ready_employees === 'number'
+          ? analyticsPayload.promotion_ready_employees
+          : (typeof analyticsPayload.promotion_ready === 'number' ? analyticsPayload.promotion_ready : fallbackAnalytics.promotion_ready),
+        needs_training: typeof analyticsPayload.high_risk_employees === 'number'
+          ? analyticsPayload.high_risk_employees
+          : (typeof analyticsPayload.needs_training === 'number' ? analyticsPayload.needs_training : fallbackAnalytics.needs_training),
+        performance_distribution: Array.isArray(analyticsPayload.performance_distribution) && analyticsPayload.performance_distribution.length > 0
+          ? analyticsPayload.performance_distribution
+          : fallbackAnalytics.performance_distribution,
+        status_breakdown: Array.isArray(analyticsPayload.status_breakdown) && analyticsPayload.status_breakdown.length > 0
+          ? analyticsPayload.status_breakdown.map(entry => ({
+              ...entry,
+              color: entry.color ?? (entry.name === 'Promotion Ready' ? '#4caf50' : entry.name === 'High Achiever' ? '#2196f3' : '#ff9800')
+            }))
+          : fallbackAnalytics.status_breakdown,
+        performance_trend: Array.isArray(analyticsPayload.performance_trend) && analyticsPayload.performance_trend.length > 0
+          ? analyticsPayload.performance_trend
+          : fallbackAnalytics.performance_trend
+      };
+      setAnalytics(normalizedAnalytics);
+    } catch (fetchError) {
+      console.error(fetchError);
+    }
+  };
+
   const handleOpenDialog = () => setDialogOpen(true);
   const handleCloseDialog = () => {
     setDialogOpen(false);
@@ -227,15 +264,16 @@ export default function App() {
     const lastName = nameParts.slice(1).join(' ') || '';
     const today = new Date().toISOString().split('T')[0];
 
+    const parsedScore = parseFloat(formData.performance_score);
     const payload = {
       first_name: firstName,
       last_name: lastName,
       email: formData.email,
       role: formData.role,
-      performance_score: Number(formData.performance_score) || 0,
+      performance_score: Number.isFinite(parsedScore) ? parsedScore : 0,
       skill_gap: formData.skill_gap,
       development_plan: formData.development_plan,
-      status: formData.status,
+      status: formData.status?.trim() ?? '',
       joining_date: today
     };
 
@@ -256,6 +294,7 @@ export default function App() {
       setSnackbar({ open: true, message: 'Employee added successfully.', severity: 'success' });
       handleCloseDialog();
       await loadEmployees();
+      await loadAnalytics();
     } catch (postError) {
       setSnackbar({ open: true, message: postError.message || 'Unable to add employee.', severity: 'error' });
     }
@@ -267,50 +306,15 @@ export default function App() {
       setError(null);
 
       try {
-        const [employeeResponse, analyticsResponse] = await Promise.all([
-          fetch('http://localhost:3001/api/python-service/employees'),
-          fetch('http://localhost:3001/api/python-service/analytics/dashboard')
-        ]);
-
+        const employeeResponse = await fetch('http://localhost:3001/api/python-service/employees');
         const employeeJson = employeeResponse.ok ? await employeeResponse.json() : null;
-        const analyticsJson = analyticsResponse.ok ? await analyticsResponse.json() : null;
-
         const employeePayload = employeeJson?.data ?? employeeJson ?? [];
         const normalizedEmployees = Array.isArray(employeePayload) && employeePayload.length > 0
-          ? employeePayload.map(emp => ({
-              employee_id: emp.employee_id ?? emp.id ?? `${emp.name ?? emp.employee_name ?? 'Unknown'}-fallback`,
-              name: emp.name ?? emp.employee_name ?? 'Unknown Employee',
-              email: emp.email ?? emp.employee_email ?? 'unknown@acme.com',
-              role: emp.role ?? emp.position ?? 'Team Member',
-              performance_score: typeof emp.performance_score === 'number' ? emp.performance_score : Number(emp.performance_score) || 0,
-              skill_gap: emp.skill_gap ?? emp.gap_area ?? 'General Development',
-              development_plan: emp.development_plan ?? emp.plan ?? 'Continue growth plan',
-              status: emp.status ?? 'Active'
-            }))
+          ? employeePayload.map(normalizeEmployee)
           : fallbackEmployees;
 
-        const analyticsPayload = analyticsJson?.data ?? analyticsJson ?? {};
-        const normalizedAnalytics = {
-          total_employees: analyticsPayload.total_employees ?? analyticsPayload.total_staff ?? fallbackAnalytics.total_employees,
-          average_performance: analyticsPayload.average_rating ?? analyticsPayload.average_performance ?? fallbackAnalytics.average_performance,
-          promotion_ready: analyticsPayload.promotion_ready_employees ?? analyticsPayload.promotion_ready ?? fallbackAnalytics.promotion_ready,
-          needs_training: analyticsPayload.high_risk_employees ?? analyticsPayload.needs_training ?? fallbackAnalytics.needs_training,
-          performance_distribution: Array.isArray(analyticsPayload.performance_distribution) && analyticsPayload.performance_distribution.length > 0
-            ? analyticsPayload.performance_distribution
-            : fallbackAnalytics.performance_distribution,
-          status_breakdown: Array.isArray(analyticsPayload.status_breakdown) && analyticsPayload.status_breakdown.length > 0
-            ? analyticsPayload.status_breakdown.map(entry => ({
-                ...entry,
-                color: entry.color ?? (entry.name === 'Promotion Ready' ? '#4caf50' : entry.name === 'High Achiever' ? '#2196f3' : '#ff9800')
-              }))
-            : fallbackAnalytics.status_breakdown,
-          performance_trend: Array.isArray(analyticsPayload.performance_trend) && analyticsPayload.performance_trend.length > 0
-            ? analyticsPayload.performance_trend
-            : fallbackAnalytics.performance_trend
-        };
-
         setEmployees(normalizedEmployees);
-        setAnalytics(normalizedAnalytics);
+        await loadAnalytics();
       } catch (fetchError) {
         setError(fetchError.message || 'Unable to load dashboard data.');
       } finally {
@@ -322,10 +326,10 @@ export default function App() {
   }, []);
 
   const filteredEmployees = employees.filter(emp => {
-    const name = emp.name ?? emp.employee_name ?? '';
-    const email = emp.email ?? emp.employee_email ?? '';
+    const fullName = emp.full_name ?? emp.name ?? '';
+    const email = emp.email ?? '';
     const term = search.trim().toLowerCase();
-    return name.toLowerCase().includes(term) || email.toLowerCase().includes(term);
+    return fullName.toLowerCase().includes(term) || email.toLowerCase().includes(term);
   });
 
   const chartColors = ['#1976d2', '#388e3c', '#f57c00', '#9c27b0'];
