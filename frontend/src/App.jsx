@@ -435,6 +435,35 @@ export default function App() {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
+  const skillDistribution = useMemo(() => {
+    const skillCounts = employees.reduce((counts, emp) => {
+      const skill = emp.skill_gap?.trim() || 'General Development';
+      counts[skill] = (counts[skill] || 0) + 1;
+      return counts;
+    }, {});
+
+    return Object.entries(skillCounts)
+      .map(([skill, count]) => ({ skill, count }))
+      .sort((a, b) => b.count - a.count || a.skill.localeCompare(b.skill))
+      .slice(0, 5);
+  }, [employees]);
+
+  const maxSkillCount = Math.max(...skillDistribution.map(item => item.count), 1);
+
+  const attritionRiskEmployees = useMemo(() => (
+    employees
+      .filter(emp => emp.status === 'Needs Training' && emp.performance_score >= 4)
+      .sort((a, b) => b.performance_score - a.performance_score)
+      .slice(0, 4)
+  ), [employees]);
+
+  const promotionReadyEmployees = useMemo(() => (
+    employees
+      .filter(emp => emp.status === 'Promotion Ready')
+      .sort((a, b) => b.performance_score - a.performance_score)
+      .slice(0, 4)
+  ), [employees]);
+
   const chartColors = ['#2563eb', '#0f766e', '#f59e0b', '#7c3aed'];
   const snapshotCards = [
     {
@@ -742,6 +771,125 @@ export default function App() {
                       <Bar dataKey="count" fill="#2563eb" radius={[8, 8, 0, 0]} maxBarSize={44} />
                     </BarChart>
                   </ResponsiveContainer>
+                </Box>
+              </Card>
+            </Grid>
+          </Grid>
+
+          <Grid container spacing={2.5} sx={{ mt: 2.25 }} alignItems="stretch">
+            <Grid item xs={12} md={4}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2, md: 2.25 }, height: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+                  <Box>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
+                      Capability Signals
+                    </Typography>
+                    <Typography variant="h6">
+                      Skill Distribution
+                    </Typography>
+                  </Box>
+                  <Box sx={{ width: 36, height: 36, borderRadius: 2, display: 'grid', placeItems: 'center', background: '#eef2ff', color: '#4f46e5' }}>
+                    <BarChartIcon fontSize="small" />
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'grid', gap: 1.35 }}>
+                  {skillDistribution.length === 0 ? (
+                    <Typography variant="body2" color="text.secondary">No skill data available.</Typography>
+                  ) : (
+                    skillDistribution.map(item => (
+                      <Box key={item.skill}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, mb: 0.5 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: '#334155' }}>
+                            {item.skill}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>
+                            {item.count}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ height: 8, borderRadius: 999, background: '#e2e8f0', overflow: 'hidden' }}>
+                          <Box sx={{ width: `${Math.max((item.count / maxSkillCount) * 100, 8)}%`, height: '100%', borderRadius: 999, background: '#2563eb' }} />
+                        </Box>
+                      </Box>
+                    ))
+                  )}
+                </Box>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2, md: 2.25 }, height: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+                  <Box>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
+                      Retention Watch
+                    </Typography>
+                    <Typography variant="h6">
+                      Attrition Risk
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={`${attritionRiskEmployees.length} elevated`}
+                    size="small"
+                    color={attritionRiskEmployees.length > 0 ? 'error' : 'success'}
+                    variant="outlined"
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  High performers marked Needs Training are flagged for manager follow-up.
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {attritionRiskEmployees.length === 0 ? (
+                    <Chip label="No elevated concerns" size="small" color="success" variant="outlined" />
+                  ) : (
+                    attritionRiskEmployees.map(emp => (
+                      <Chip
+                        key={emp.employee_id}
+                        label={`${emp.full_name ?? emp.name ?? 'Employee'} - ${emp.performance_score.toFixed(1)}`}
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    ))
+                  )}
+                </Box>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} md={4}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2, md: 2.25 }, height: '100%' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
+                  <Box>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
+                      Mobility Pipeline
+                    </Typography>
+                    <Typography variant="h6">
+                      Promotion Readiness
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={`${promotionReadyEmployees.length} ready`}
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Employees already tagged Promotion Ready, ranked by performance.
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {promotionReadyEmployees.length === 0 ? (
+                    <Chip label="No ready employees" size="small" variant="outlined" />
+                  ) : (
+                    promotionReadyEmployees.map(emp => (
+                      <Chip
+                        key={emp.employee_id}
+                        label={`${emp.full_name ?? emp.name ?? 'Employee'} - ${emp.performance_score.toFixed(1)}`}
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    ))
+                  )}
                 </Box>
               </Card>
             </Grid>
