@@ -508,9 +508,6 @@ export default function App() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff' }}>
                   TalentOps
                 </Typography>
-                <Typography variant="caption" sx={{ color: '#94a3b8' }}>
-                  Analytics Suite
-                </Typography>
               </Box>
             </Box>
             <Divider sx={{ borderColor: 'rgba(148,163,184,0.2)', mb: 2 }} />
@@ -550,14 +547,14 @@ export default function App() {
           component="main"
           sx={{
             flexGrow: 1,
-            px: { xs: 2, sm: 3, lg: 3.5, xl: 4 },
-            py: { xs: 2, md: 2.5 },
+            px: { xs: 1.75, sm: 2.25, lg: 2.5 },
+            py: { xs: 1.5, md: 2 },
             width: { md: `calc(100% - ${drawerWidth}px)` }
           }}
         >
           <Toolbar />
-          <Box sx={{ width: '100%', maxWidth: 1680, mx: 'auto' }}>
-            <Box sx={{ my: { xs: 2, md: 2.5 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+          <Box sx={{ width: '100%' }}>
+            <Box sx={{ my: { xs: 1.5, md: 1.75 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
               <Box>
                 <Typography variant="h4" sx={{ mb: 0.75 }}>
                   Workforce Analytics
@@ -574,27 +571,27 @@ export default function App() {
                 elevation={0}
                 sx={{
                   ...panelSx,
-                  p: { xs: 2.25, md: 3 },
+                  p: { xs: 2, md: 2.5 },
                   height: '100%'
                 }}
               >
-                <Box sx={{ mb: 2.5 }}>
+                <Box sx={{ mb: 2 }}>
                   <Typography variant="h5">
                     Workforce Snapshot
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Real-time performance indicators with resilient API fallbacks.
+                    Real-time performance indicators.
                   </Typography>
                 </Box>
-                <Grid container spacing={2} alignItems="stretch">
+                <Grid container spacing={1.5} alignItems="stretch">
                   {snapshotCards.map(card => (
                     <Grid item xs={12} sm={6} lg={3} key={card.label} sx={{ display: 'flex' }}>
                       <Card
                         elevation={0}
                         sx={{
-                          p: 2.25,
+                          p: 2,
                           width: '100%',
-                          minHeight: 150,
+                          minHeight: 124,
                           borderRadius: 2,
                           border: '1px solid #e2e8f0',
                           background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
@@ -629,8 +626,8 @@ export default function App() {
 
             </Grid>
 
-            <Grid container spacing={3} sx={{ mt: 3 }} alignItems="stretch">
-            <Grid item xs={12} lg={4} xl={3}>
+            <Grid container spacing={2.5} sx={{ mt: 2.25 }} alignItems="stretch">
+            <Grid item xs={12} lg={4} xl={4}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 2.5 }, height: '100%' }}>
                 <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
@@ -664,14 +661,24 @@ export default function App() {
                         ))}
                       </Pie>
                       <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: cardShadow }} />
-                      <Legend verticalAlign="bottom" height={28} />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={52}
+                        iconSize={8}
+                        wrapperStyle={{
+                          fontSize: 11,
+                          lineHeight: '16px',
+                          paddingTop: 8,
+                          whiteSpace: 'normal'
+                        }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </Box>
               </Card>
             </Grid>
 
-            <Grid item xs={12} lg={5} xl={6}>
+            <Grid item xs={12} lg={5} xl={5}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                   <Box>
@@ -721,7 +728,7 @@ export default function App() {
             </Grid>
           </Grid>
 
-          <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, mt: 3 }}>
+          <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, mt: 2.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}>
               <Box>
                 <Typography variant="h6">
