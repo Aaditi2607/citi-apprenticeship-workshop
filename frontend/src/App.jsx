@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -272,6 +272,11 @@ export default function App() {
   });
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const dashboardRef = useRef(null);
+  const snapshotRef = useRef(null);
+  const analyticsRef = useRef(null);
+  const insightsRef = useRef(null);
+  const employeesRef = useRef(null);
   const panelSx = {
     borderRadius: 2,
     border: subtleBorder,
@@ -337,6 +342,17 @@ export default function App() {
     setSearch('');
     setStatusFilter('all');
     setRoleFilter('all');
+  };
+  const sectionRefs = {
+    dashboard: dashboardRef,
+    snapshot: snapshotRef,
+    analytics: analyticsRef,
+    insights: insightsRef,
+    employees: employeesRef
+  };
+  const handleSectionScroll = section => {
+    sectionRefs[section]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setSidebarOpen(false);
   };
 
   const handleCloseDialog = () => {
@@ -520,16 +536,16 @@ export default function App() {
     : snapshotCards;
   const navigationItems = isEmployee
     ? [
-        { label: 'My Dashboard', icon: <DashboardIcon /> },
-        { label: 'Development Plan', icon: <WorkIcon /> },
-        { label: 'Profile', icon: <BadgeIcon /> }
+        { label: 'Dashboard', icon: <DashboardIcon />, section: 'dashboard' },
+        { label: 'Workforce Snapshot', icon: <BadgeIcon />, section: 'snapshot' },
+        { label: 'Insights', icon: <WorkIcon />, section: 'insights' }
       ]
     : [
-        { label: 'Overview', icon: <DashboardIcon /> },
-        { label: 'Employees', icon: <PeopleIcon /> },
-        { label: 'Analytics', icon: <AssessmentIcon /> },
-        { label: 'Insights', icon: <BarChartIcon /> },
-        { label: 'Performance', icon: <WorkIcon /> }
+        { label: 'Dashboard', icon: <DashboardIcon />, section: 'dashboard' },
+        { label: 'Workforce Snapshot', icon: <PeopleIcon />, section: 'snapshot' },
+        { label: 'Analytics', icon: <AssessmentIcon />, section: 'analytics' },
+        { label: 'Insights', icon: <BarChartIcon />, section: 'insights' },
+        { label: 'Employees', icon: <WorkIcon />, section: 'employees' }
       ];
 
   if (!authRole) {
@@ -677,6 +693,7 @@ export default function App() {
             {navigationItems.map(item => (
               <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
+                  onClick={() => handleSectionScroll(item.section)}
                   sx={{
                     px: 2,
                     py: 1.2,
@@ -706,7 +723,7 @@ export default function App() {
         >
           <Toolbar />
           <Box sx={{ width: '100%' }}>
-            <Box sx={{ my: { xs: 1.5, md: 1.75 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+            <Box ref={dashboardRef} sx={{ my: { xs: 1.5, md: 1.75 }, scrollMarginTop: 96, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
               <Box>
                 <Typography variant="h4" sx={{ mb: 0.75 }}>
                   {isEmployee ? 'My Workforce Dashboard' : isManager ? 'Manager Team Analytics' : 'Workforce Analytics'}
@@ -722,7 +739,7 @@ export default function App() {
             </Box>
 
             {isEmployee ? (
-              <Grid container spacing={2.5} alignItems="stretch">
+              <Grid ref={snapshotRef} container spacing={2.5} alignItems="stretch" sx={{ scrollMarginTop: 96 }}>
                 <Grid item xs={12} md={5}>
                   <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'flex-start', mb: 3 }}>
@@ -763,7 +780,7 @@ export default function App() {
                     </Grid>
                   </Card>
                 </Grid>
-                <Grid item xs={12} md={7}>
+                <Grid ref={insightsRef} item xs={12} md={7} sx={{ scrollMarginTop: 96 }}>
                   <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                     <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
                       Growth Plan
@@ -790,7 +807,7 @@ export default function App() {
               </Grid>
             ) : (
             <>
-            <Grid container spacing={3} alignItems="stretch">
+            <Grid ref={snapshotRef} container spacing={3} alignItems="stretch" sx={{ scrollMarginTop: 96 }}>
             <Grid item xs={12}>
               <Card
                 elevation={0}
@@ -851,7 +868,7 @@ export default function App() {
 
             </Grid>
 
-            <Grid container spacing={2.5} sx={{ mt: 2.25 }} alignItems="stretch">
+            <Grid ref={analyticsRef} container spacing={2.5} sx={{ mt: 2.25, scrollMarginTop: 96 }} alignItems="stretch">
             <Grid item xs={12} lg={4} xl={4}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 2.5 }, height: '100%' }}>
                 <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -955,7 +972,7 @@ export default function App() {
             </Grid>
           </Grid>
 
-          <Grid container spacing={2.5} sx={{ mt: 2.25 }} alignItems="stretch">
+          <Grid ref={insightsRef} container spacing={2.5} sx={{ mt: 2.25, scrollMarginTop: 96 }} alignItems="stretch">
             <Grid item xs={12} md={4}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2, md: 2.25 }, height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
@@ -1074,7 +1091,7 @@ export default function App() {
             </Grid>
           </Grid>
 
-          <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, mt: 2.5 }}>
+          <Card ref={employeesRef} elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, mt: 2.5, scrollMarginTop: 96 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}>
               <Box>
                 <Typography variant="h6">
