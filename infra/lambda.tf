@@ -23,8 +23,8 @@ module "lambda" {
     npm_requirements = try(each.value.npm_requirements, null)
   }]
 
-  vpc_security_group_ids = data.aws_security_groups.this.ids
-  vpc_subnet_ids         = local.public_subnet_ids
+  vpc_security_group_ids = data.aws_caller_identity.this.id != "000000000000" ? [aws_security_group.lambda[0].id] : data.aws_security_groups.this.ids
+  vpc_subnet_ids         = data.aws_caller_identity.this.id != "000000000000" ? (length(local.private_subnet_ids) > 0 ? local.private_subnet_ids : local.public_subnet_ids) : local.public_subnet_ids
   attach_network_policy  = true
 
   create_package     = true
@@ -67,6 +67,23 @@ module "lambda" {
   depends_on = [null_resource.java_build]
 }
 
+resource "aws_security_group" "lambda" {
+  count       = data.aws_caller_identity.this.id != "000000000000" ? 1 : 0
+  name        = format("%s-lambda-sg-%s", var.aws_project, local.app_id)
+  description = "Security group for Lambda functions that connect to RDS"
+  vpc_id      = data.aws_vpc.this.id
+
+  egress {
+    description = "Allow HTTPS egress for AWS service endpoints"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = local.app_tags
+}
+
 resource "aws_sqs_queue" "this" {
   for_each = local.function_names
   name     = format("%s-%s-dlq-%s", var.aws_project, each.value.name, local.app_id)
@@ -77,7 +94,7 @@ resource "aws_sqs_queue" "this" {
 }
 
 resource "null_resource" "hot_reload" {
-  for_each = {for k, v in local.function_names : k => v if data.aws_caller_identity.this.id == "000000000000"}
+  for_each = { for k, v in local.function_names : k => v if data.aws_caller_identity.this.id == "000000000000" }
 
   triggers = {
     source_code_hash = module.lambda[each.key].lambda_function_source_code_hash
