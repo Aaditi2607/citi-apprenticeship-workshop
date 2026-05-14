@@ -29,7 +29,14 @@ import {
   FormControlLabel,
   Paper,
   CircularProgress,
-  Chip
+  Chip,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -120,6 +127,17 @@ const fallbackAnalytics = {
   ]
 };
 
+const normalizeEmployee = emp => ({
+  employee_id: emp.employee_id ?? emp.id ?? `${emp.name ?? emp.employee_name ?? 'unknown'}-fallback`,
+  name: emp.name ?? emp.employee_name ?? 'Unknown Employee',
+  email: emp.email ?? emp.employee_email ?? 'unknown@acme.com',
+  role: emp.role ?? emp.position ?? 'Team Member',
+  performance_score: typeof emp.performance_score === 'number' ? emp.performance_score : Number(emp.performance_score) || 0,
+  skill_gap: emp.skill_gap ?? emp.gap_area ?? 'General Development',
+  development_plan: emp.development_plan ?? emp.plan ?? 'Continue growth plan',
+  status: emp.status ?? 'Active'
+});
+
 export default function App() {
   const [employees, setEmployees] = useState([]);
   const [analytics, setAnalytics] = useState(null);
@@ -128,6 +146,17 @@ export default function App() {
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: '',
+    performance_score: '',
+    skill_gap: '',
+    development_plan: '',
+    status: ''
+  });
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const theme = createTheme({
     palette: {
@@ -149,6 +178,78 @@ export default function App() {
   });
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  const loadEmployees = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/python-service/employees');
+      const json = response.ok ? await response.json() : null;
+      const payload = json?.data ?? json ?? [];
+      setEmployees(Array.isArray(payload) && payload.length > 0 ? payload.map(normalizeEmployee) : fallbackEmployees);
+    } catch (fetchError) {
+      console.error(fetchError);
+    }
+  };
+
+  const handleOpenDialog = () => setDialogOpen(true);
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setFormData({
+      name: '',
+      email: '',
+      role: '',
+      performance_score: '',
+      skill_gap: '',
+      development_plan: '',
+      status: ''
+    });
+  };
+
+  const handleFormChange = event => {
+    const { name, value } = event.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSnackbarClose = () => setSnackbar(prev => ({ ...prev, open: false }));
+
+  const handleAddEmployee = async () => {
+    const nameParts = formData.name.trim().split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const today = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      first_name: firstName,
+      last_name: lastName,
+      email: formData.email,
+      role: formData.role,
+      performance_score: Number(formData.performance_score) || 0,
+      skill_gap: formData.skill_gap,
+      development_plan: formData.development_plan,
+      status: formData.status,
+      joining_date: today
+    };
+
+    try {
+      const response = await fetch('http://localhost:3001/api/python-service/employees', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        throw new Error(errorBody.message || `Request failed with status ${response.status}`);
+      }
+
+      setSnackbar({ open: true, message: 'Employee added successfully.', severity: 'success' });
+      handleCloseDialog();
+      await loadEmployees();
+    } catch (postError) {
+      setSnackbar({ open: true, message: postError.message || 'Unable to add employee.', severity: 'error' });
+    }
+  };
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -475,13 +576,18 @@ export default function App() {
                   Search, review, and compare employee quality metrics at a glance.
                 </Typography>
               </Box>
-              <TextField
-                size="small"
-                placeholder="Search by name or email"
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                sx={{ width: { xs: '100%', sm: 300 } }}
-              />
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+                <Button variant="contained" color="primary" onClick={handleOpenDialog}>
+                  Add Employee
+                </Button>
+                <TextField
+                  size="small"
+                  placeholder="Search by name or email"
+                  value={search}
+                  onChange={event => setSearch(event.target.value)}
+                  sx={{ width: { xs: '100%', sm: 300 } }}
+                />
+              </Box>
             </Box>
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -558,6 +664,89 @@ export default function App() {
               <Typography color="text.secondary">{error}</Typography>
             </Box>
           )}
+
+          <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
+            <DialogTitle>Add Employee</DialogTitle>
+            <DialogContent>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Name"
+                name="name"
+                value={formData.name}
+                onChange={handleFormChange}
+                fullWidth
+              />
+              <TextField
+                margin="dense"
+                label="Email"
+                name="email"
+                value={formData.email}
+                onChange={handleFormChange}
+                fullWidth
+              />
+              <TextField
+                margin="dense"
+                label="Role"
+                name="role"
+                value={formData.role}
+                onChange={handleFormChange}
+                fullWidth
+              />
+              <TextField
+                margin="dense"
+                label="Performance Score"
+                name="performance_score"
+                type="number"
+                value={formData.performance_score}
+                onChange={handleFormChange}
+                fullWidth
+              />
+              <TextField
+                margin="dense"
+                label="Skill Gap"
+                name="skill_gap"
+                value={formData.skill_gap}
+                onChange={handleFormChange}
+                fullWidth
+              />
+              <TextField
+                margin="dense"
+                label="Development Plan"
+                name="development_plan"
+                value={formData.development_plan}
+                onChange={handleFormChange}
+                fullWidth
+                multiline
+                rows={3}
+              />
+              <TextField
+                margin="dense"
+                label="Status"
+                name="status"
+                value={formData.status}
+                onChange={handleFormChange}
+                fullWidth
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseDialog}>Cancel</Button>
+              <Button onClick={handleAddEmployee} variant="contained" color="primary">
+                Save
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          <Snackbar
+            open={snackbar.open}
+            autoHideDuration={6000}
+            onClose={handleSnackbarClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+          >
+            <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+              {snackbar.message}
+            </Alert>
+          </Snackbar>
         </Box>
       </Box>
     </ThemeProvider>
