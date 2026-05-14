@@ -131,9 +131,11 @@ const fallbackAnalytics = {
 };
 
 const normalizeEmployee = emp => {
-  const firstName = emp.first_name ?? emp.name?.split(' ')[0] ?? 'Unknown';
-  const lastName = emp.last_name ?? emp.name?.split(' ').slice(1).join(' ') ?? '';
+  const sourceName = emp.name ?? emp.employee_name ?? '';
+  const firstName = emp.first_name ?? sourceName.split(' ')[0] ?? 'Unknown';
+  const lastName = emp.last_name ?? sourceName.split(' ').slice(1).join(' ') ?? '';
   const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+  const performanceScore = Number(emp.performance_score);
   return {
     employee_id: emp.employee_id ?? emp.id ?? `${fullName}-fallback`,
     first_name: firstName,
@@ -141,11 +143,28 @@ const normalizeEmployee = emp => {
     full_name: fullName,
     email: emp.email ?? emp.employee_email ?? 'unknown@acme.com',
     role: emp.role ?? emp.position ?? 'Team Member',
-    performance_score: typeof emp.performance_score === 'number' ? emp.performance_score : Number(emp.performance_score) || 0,
+    performance_score: Number.isFinite(performanceScore) ? performanceScore : 0,
     skill_gap: emp.skill_gap ?? emp.gap_area ?? 'General Development',
     development_plan: emp.development_plan ?? emp.plan ?? 'Continue growth plan',
-    status: emp.status ?? 'Active'
+    status: emp.status?.trim() || 'Active',
+    joining_date: emp.joining_date ?? ''
   };
+};
+
+const isFallbackEmployeeList = list =>
+  list.length === fallbackEmployees.length
+  && list.every((employee, index) => employee.email === fallbackEmployees[index].email);
+
+const getEmployeesFromApi = async () => {
+  const response = await fetch('http://localhost:3001/api/python-service/employees');
+  if (!response.ok) {
+    throw new Error(`Employee request failed with status ${response.status}`);
+  }
+  const json = await response.json();
+  const payload = json?.data ?? json ?? [];
+  return Array.isArray(payload) && payload.length > 0
+    ? payload.map(normalizeEmployee)
+    : fallbackEmployees.map(normalizeEmployee);
 };
 
 export default function App() {
@@ -191,10 +210,7 @@ export default function App() {
 
   const loadEmployees = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/python-service/employees');
-      const json = response.ok ? await response.json() : null;
-      const payload = json?.data ?? json ?? [];
-      setEmployees(Array.isArray(payload) && payload.length > 0 ? payload.map(normalizeEmployee) : fallbackEmployees);
+      setEmployees(await getEmployeesFromApi());
     } catch (fetchError) {
       console.error(fetchError);
     }
@@ -209,9 +225,9 @@ export default function App() {
         total_employees: typeof analyticsPayload.total_employees === 'number' 
           ? analyticsPayload.total_employees 
           : (typeof analyticsPayload.total_staff === 'number' ? analyticsPayload.total_staff : fallbackAnalytics.total_employees),
-        average_performance: typeof analyticsPayload.average_rating === 'number'
-          ? analyticsPayload.average_rating
-          : (typeof analyticsPayload.average_performance === 'number' ? analyticsPayload.average_performance : fallbackAnalytics.average_performance),
+        average_performance: typeof analyticsPayload.average_performance === 'number'
+          ? analyticsPayload.average_performance
+          : (typeof analyticsPayload.average_rating === 'number' ? analyticsPayload.average_rating : fallbackAnalytics.average_performance),
         promotion_ready: typeof analyticsPayload.promotion_ready_employees === 'number'
           ? analyticsPayload.promotion_ready_employees
           : (typeof analyticsPayload.promotion_ready === 'number' ? analyticsPayload.promotion_ready : fallbackAnalytics.promotion_ready),
@@ -291,6 +307,14 @@ export default function App() {
         throw new Error(errorBody.message || `Request failed with status ${response.status}`);
       }
 
+      const json = await response.json();
+      const createdEmployee = normalizeEmployee(json?.data ?? payload);
+      setEmployees(prev => {
+        const nextEmployees = isFallbackEmployeeList(prev)
+          ? []
+          : prev.filter(emp => emp.employee_id !== createdEmployee.employee_id);
+        return [...nextEmployees, createdEmployee];
+      });
       setSnackbar({ open: true, message: 'Employee added successfully.', severity: 'success' });
       handleCloseDialog();
       await loadEmployees();
@@ -306,14 +330,7 @@ export default function App() {
       setError(null);
 
       try {
-        const employeeResponse = await fetch('http://localhost:3001/api/python-service/employees');
-        const employeeJson = employeeResponse.ok ? await employeeResponse.json() : null;
-        const employeePayload = employeeJson?.data ?? employeeJson ?? [];
-        const normalizedEmployees = Array.isArray(employeePayload) && employeePayload.length > 0
-          ? employeePayload.map(normalizeEmployee)
-          : fallbackEmployees;
-
-        setEmployees(normalizedEmployees);
+        setEmployees(await getEmployeesFromApi());
         await loadAnalytics();
       } catch (fetchError) {
         setError(fetchError.message || 'Unable to load dashboard data.');
@@ -617,13 +634,14 @@ export default function App() {
                       <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Performance</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Skill Gap</TableCell>
+                      <TableCell sx={{ fontWeight: 700 }}>Development Plan</TableCell>
                       <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {filteredEmployees.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                        <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                           <Typography color="text.secondary">No employees match your search.</Typography>
                         </TableCell>
                       </TableRow>
@@ -648,6 +666,7 @@ export default function App() {
                             </Box>
                           </TableCell>
                           <TableCell>{emp.skill_gap}</TableCell>
+                          <TableCell sx={{ maxWidth: 260 }}>{emp.development_plan}</TableCell>
                           <TableCell>
                             <Chip
                               label={emp.status}
