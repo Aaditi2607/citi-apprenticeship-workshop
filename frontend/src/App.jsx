@@ -123,7 +123,7 @@ const fallbackAnalytics = {
   status_breakdown: [
     { name: 'Promotion Ready', value: 9, color: '#4caf50' },
     { name: 'High Achiever', value: 16, color: '#2196f3' },
-    { name: 'Needs Training', value: 7, color: '#dc2626' }
+    { name: 'Needs Training', value: 7, color: '#f59e0b' }
   ],
   performance_trend: [
     { month: 'Jan', average: 3.9 },
@@ -320,7 +320,7 @@ export default function App() {
         status_breakdown: Array.isArray(analyticsPayload.status_breakdown) && analyticsPayload.status_breakdown.length > 0
           ? analyticsPayload.status_breakdown.map(entry => ({
               ...entry,
-              color: entry.color ?? (entry.name === 'Promotion Ready' ? '#4caf50' : entry.name === 'High Achiever' ? '#2196f3' : '#dc2626')
+              color: entry.color ?? (entry.name === 'Promotion Ready' ? '#4caf50' : entry.name === 'Needs Training' ? '#f59e0b' : entry.name === 'High Accuracy' || entry.name === 'High Achiever' ? '#2196f3' : '#2196f3')
             }))
           : fallbackAnalytics.status_breakdown,
         performance_trend: Array.isArray(analyticsPayload.performance_trend) && analyticsPayload.performance_trend.length > 0
