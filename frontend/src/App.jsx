@@ -71,7 +71,8 @@ const drawerWidth = 250;
 const fallbackEmployees = [
   {
     employee_id: 1,
-    name: 'Avery Johnson',
+    first_name: 'Avery',
+    last_name: 'Johnson',
     role: 'Senior Product Manager',
     performance_score: 4.7,
     email: 'avery.johnson@acme.com',
@@ -81,7 +82,8 @@ const fallbackEmployees = [
   },
   {
     employee_id: 2,
-    name: 'Mia Chen',
+    first_name: 'Mia',
+    last_name: 'Chen',
     role: 'UX Designer',
     performance_score: 4.2,
     email: 'mia.chen@acme.com',
@@ -91,7 +93,8 @@ const fallbackEmployees = [
   },
   {
     employee_id: 3,
-    name: 'Noah Patel',
+    first_name: 'Noah',
+    last_name: 'Patel',
     role: 'Data Engineer',
     performance_score: 3.9,
     email: 'noah.patel@acme.com',
@@ -127,16 +130,23 @@ const fallbackAnalytics = {
   ]
 };
 
-const normalizeEmployee = emp => ({
-  employee_id: emp.employee_id ?? emp.id ?? `${emp.name ?? emp.employee_name ?? 'unknown'}-fallback`,
-  name: emp.name ?? emp.employee_name ?? 'Unknown Employee',
-  email: emp.email ?? emp.employee_email ?? 'unknown@acme.com',
-  role: emp.role ?? emp.position ?? 'Team Member',
-  performance_score: typeof emp.performance_score === 'number' ? emp.performance_score : Number(emp.performance_score) || 0,
-  skill_gap: emp.skill_gap ?? emp.gap_area ?? 'General Development',
-  development_plan: emp.development_plan ?? emp.plan ?? 'Continue growth plan',
-  status: emp.status ?? 'Active'
-});
+const normalizeEmployee = emp => {
+  const firstName = emp.first_name ?? emp.name?.split(' ')[0] ?? 'Unknown';
+  const lastName = emp.last_name ?? emp.name?.split(' ').slice(1).join(' ') ?? '';
+  const fullName = lastName ? `${firstName} ${lastName}` : firstName;
+  return {
+    employee_id: emp.employee_id ?? emp.id ?? `${fullName}-fallback`,
+    first_name: firstName,
+    last_name: lastName,
+    full_name: fullName,
+    email: emp.email ?? emp.employee_email ?? 'unknown@acme.com',
+    role: emp.role ?? emp.position ?? 'Team Member',
+    performance_score: typeof emp.performance_score === 'number' ? emp.performance_score : Number(emp.performance_score) || 0,
+    skill_gap: emp.skill_gap ?? emp.gap_area ?? 'General Development',
+    development_plan: emp.development_plan ?? emp.plan ?? 'Continue growth plan',
+    status: emp.status ?? 'Active'
+  };
+};
 
 export default function App() {
   const [employees, setEmployees] = useState([]);
@@ -618,25 +628,25 @@ export default function App() {
                         <TableRow key={emp.employee_id} hover>
                           <TableCell sx={{ minWidth: 180 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                              {emp.name ?? emp.employee_name ?? 'Unknown Employee'}
+                              {emp.full_name ?? emp.name ?? 'Unknown Employee'}
                             </Typography>
                           </TableCell>
-                          <TableCell>{emp.email ?? emp.employee_email ?? 'unknown@acme.com'}</TableCell>
-                          <TableCell>{emp.role ?? 'Team Member'}</TableCell>
+                          <TableCell>{emp.email}</TableCell>
+                          <TableCell>{emp.role}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography sx={{ fontWeight: 700 }}>{emp.performance_score?.toFixed(1) ?? '0.0'}</Typography>
+                              <Typography sx={{ fontWeight: 700 }}>{emp.performance_score.toFixed(1)}</Typography>
                               <Chip
-                                label={`${Math.round((emp.performance_score ?? 0) * 20)}%`}
+                                label={`${Math.round(emp.performance_score * 20)}%`}
                                 size="small"
                                 color={emp.performance_score >= 4 ? 'success' : emp.performance_score >= 3 ? 'primary' : 'warning'}
                               />
                             </Box>
                           </TableCell>
-                          <TableCell>{emp.skill_gap ?? 'General Development'}</TableCell>
+                          <TableCell>{emp.skill_gap}</TableCell>
                           <TableCell>
                             <Chip
-                              label={emp.status ?? 'Active'}
+                              label={emp.status}
                               color={
                                 emp.status === 'Promotion Ready'
                                   ? 'success'
