@@ -20,13 +20,10 @@ import {
   IconButton,
   Grid,
   Card,
-  CardContent,
   ThemeProvider,
   createTheme,
   CssBaseline,
   useMediaQuery,
-  Switch,
-  FormControlLabel,
   Paper,
   CircularProgress,
   Chip,
@@ -36,19 +33,21 @@ import {
   DialogContent,
   DialogActions,
   Snackbar,
-  Alert
+  Alert,
+  Divider,
+  InputAdornment
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
-  Brightness4 as Brightness4Icon,
-  Brightness7 as Brightness7Icon,
   People as PeopleIcon,
   TrendingUp as TrendingUpIcon,
   Assessment as AssessmentIcon,
   Work as WorkIcon,
   BarChart as BarChartIcon,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Add as AddIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -67,6 +66,8 @@ import {
 } from 'recharts';
 
 const drawerWidth = 250;
+const cardShadow = '0 18px 45px rgba(15, 23, 42, 0.08)';
+const subtleBorder = '1px solid rgba(148, 163, 184, 0.22)';
 
 const fallbackEmployees = [
   {
@@ -174,7 +175,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -189,24 +189,91 @@ export default function App() {
 
   const theme = createTheme({
     palette: {
-      mode: darkMode ? 'dark' : 'light',
+      mode: 'light',
       primary: {
-        main: '#1976d2'
+        main: '#1d4ed8'
       },
       secondary: {
-        main: '#ff7f50'
+        main: '#0f766e'
       },
       background: {
-        default: darkMode ? '#111827' : '#f3f6fb',
-        paper: darkMode ? '#1f2937' : '#ffffff'
+        default: '#f6f8fb',
+        paper: '#ffffff'
+      },
+      text: {
+        primary: '#0f172a',
+        secondary: '#64748b'
       }
     },
     typography: {
-      fontFamily: ['Inter', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'].join(',')
+      fontFamily: ['Inter', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'].join(','),
+      h4: {
+        fontWeight: 800,
+        letterSpacing: 0
+      },
+      h5: {
+        fontWeight: 800,
+        letterSpacing: 0
+      },
+      h6: {
+        fontWeight: 750,
+        letterSpacing: 0
+      }
+    },
+    shape: {
+      borderRadius: 10
+    },
+    components: {
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            border: subtleBorder,
+            boxShadow: cardShadow
+          }
+        }
+      },
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            textTransform: 'none',
+            fontWeight: 700
+          }
+        }
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          head: {
+            backgroundColor: '#f8fafc',
+            color: '#475569',
+            fontSize: '0.75rem',
+            letterSpacing: '0.04em',
+            textTransform: 'uppercase'
+          }
+        }
+      },
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            fontWeight: 700
+          }
+        }
+      }
     }
   });
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const panelSx = {
+    borderRadius: 2,
+    border: subtleBorder,
+    boxShadow: cardShadow,
+    background: '#ffffff'
+  };
+  const chartContainerSx = {
+    height: { xs: 280, md: 320 },
+    minWidth: 0
+  };
 
   const loadEmployees = async () => {
     try {
@@ -349,47 +416,68 @@ export default function App() {
     return fullName.toLowerCase().includes(term) || email.toLowerCase().includes(term);
   });
 
-  const chartColors = ['#1976d2', '#388e3c', '#f57c00', '#9c27b0'];
+  const chartColors = ['#2563eb', '#0f766e', '#f59e0b', '#7c3aed'];
+  const snapshotCards = [
+    {
+      label: 'Total Employees',
+      value: analytics?.total_employees ?? fallbackAnalytics.total_employees,
+      caption: 'Employees tracked',
+      color: '#2563eb',
+      icon: <PeopleIcon />
+    },
+    {
+      label: 'Avg Rating',
+      value: (analytics?.average_performance ?? fallbackAnalytics.average_performance).toFixed(1),
+      caption: 'Overall score',
+      color: '#0f766e',
+      icon: <TrendingUpIcon />
+    },
+    {
+      label: 'Promotion Ready',
+      value: analytics?.promotion_ready ?? fallbackAnalytics.promotion_ready,
+      caption: 'Ready now',
+      color: '#16a34a',
+      icon: <AssessmentIcon />
+    },
+    {
+      label: 'Needs Training',
+      value: analytics?.needs_training ?? fallbackAnalytics.needs_training,
+      caption: 'Action needed',
+      color: '#f59e0b',
+      icon: <WorkIcon />
+    }
+  ];
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', background: 'linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%)' }}>
         <AppBar
           position="fixed"
-          elevation={3}
+          elevation={0}
           sx={{
             width: { md: `calc(100% - ${drawerWidth}px)` },
             ml: { md: `${drawerWidth}px` },
-            background: darkMode
-              ? 'linear-gradient(90deg, rgba(30,41,59,1), rgba(17,24,39,1))'
-              : 'linear-gradient(90deg, rgba(25,118,210,1), rgba(66,165,245,1))'
+            background: 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(16px)',
+            color: 'text.primary',
+            borderBottom: subtleBorder
           }}
         >
-          <Toolbar sx={{ gap: 2 }}>
+          <Toolbar sx={{ gap: 2, minHeight: { xs: 68, md: 76 } }}>
             {isMobile && (
-              <IconButton color="inherit" edge="start" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <IconButton edge="start" onClick={() => setSidebarOpen(!sidebarOpen)}>
                 <MenuIcon />
               </IconButton>
             )}
             <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" noWrap>
+              <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: '0.08em' }}>
+                Workforce Intelligence
+              </Typography>
+              <Typography variant="h5" noWrap sx={{ lineHeight: 1.15 }}>
                 Employee Performance Dashboard
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.85 }}>
-                Insights, metrics, and workforce performance in one place.
-              </Typography>
             </Box>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={darkMode}
-                  onChange={() => setDarkMode(!darkMode)}
-                  color="default"
-                />
-              }
-              label={darkMode ? <Brightness4Icon /> : <Brightness7Icon />}
-            />
           </Toolbar>
         </AppBar>
 
@@ -404,21 +492,33 @@ export default function App() {
             '& .MuiDrawer-paper': {
               width: drawerWidth,
               boxSizing: 'border-box',
-              borderRight: 0,
-              background: darkMode ? '#111827' : '#ffffff'
+              borderRight: subtleBorder,
+              background: '#0f172a',
+              color: '#e2e8f0'
             }
           }}
         >
           <Toolbar />
-          <Box sx={{ px: 2, pb: 2 }}>
-            <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 700 }}>
+          <Box sx={{ px: 3, pb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+              <Box sx={{ width: 36, height: 36, borderRadius: 2, display: 'grid', placeItems: 'center', background: '#2563eb' }}>
+                <DashboardIcon fontSize="small" />
+              </Box>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#ffffff' }}>
+                  TalentOps
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#94a3b8' }}>
+                  Analytics Suite
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ borderColor: 'rgba(148,163,184,0.2)', mb: 2 }} />
+            <Typography variant="caption" sx={{ color: '#94a3b8', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
               Navigation
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Quick access to important dashboard areas.
-            </Typography>
           </Box>
-          <List>
+          <List sx={{ px: 1.5 }}>
             {[
               { label: 'Overview', icon: <DashboardIcon /> },
               { label: 'Employees', icon: <PeopleIcon /> },
@@ -426,139 +526,160 @@ export default function App() {
               { label: 'Insights', icon: <BarChartIcon /> },
               { label: 'Performance', icon: <WorkIcon /> }
             ].map(item => (
-              <ListItem key={item.label} disablePadding>
-                <ListItemButton sx={{ px: 3 }}>
-                  <ListItemIcon sx={{ color: darkMode ? '#90caf9' : '#1976d2' }}>
+              <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  sx={{
+                    px: 2,
+                    py: 1.2,
+                    borderRadius: 2,
+                    color: '#cbd5e1',
+                    '&:hover': { background: 'rgba(37, 99, 235, 0.18)', color: '#ffffff' }
+                  }}
+                >
+                  <ListItemIcon sx={{ color: 'inherit', minWidth: 38 }}>
                     {item.icon}
                   </ListItemIcon>
-                  <ListItemText primary={item.label} />
+                  <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 700, fontSize: 14 }} />
                 </ListItemButton>
               </ListItem>
             ))}
           </List>
         </Drawer>
 
-        <Box component="main" sx={{ flexGrow: 1, p: 3, width: { md: `calc(100% - ${drawerWidth}px)` } }}>
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            px: { xs: 2, sm: 3, lg: 4 },
+            py: { xs: 2, md: 3 },
+            width: { md: `calc(100% - ${drawerWidth}px)` }
+          }}
+        >
           <Toolbar />
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
+          <Box sx={{ my: { xs: 2, md: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+            <Box>
+              <Typography variant="h4" sx={{ mb: 0.75 }}>
+                Workforce Analytics
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Executive view of talent readiness, performance movement, and development priorities.
+              </Typography>
+            </Box>
+            <Chip
+              label="Live dashboard"
+              color="primary"
+              variant="outlined"
+              sx={{ background: '#eff6ff', borderColor: '#bfdbfe' }}
+            />
+          </Box>
+
+          <Grid container spacing={3} alignItems="stretch">
+            <Grid item xs={12} xl={8}>
               <Card
-                elevation={3}
+                elevation={0}
                 sx={{
-                  background: darkMode ? '#1e293b' : '#ffffff',
-                  borderRadius: 3,
-                  p: 3
+                  ...panelSx,
+                  p: { xs: 2.25, md: 3 },
+                  height: '100%'
                 }}
               >
-                <Typography variant="h5" gutterBottom sx={{ fontWeight: 700 }}>
-                  Workforce Snapshot
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Real-time performance data with safe fallbacks for any API disruption.
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card
-                      elevation={1}
-                      sx={{
-                        p: 2,
-                        background: darkMode ? '#111827' : '#f4f8ff',
-                        borderRadius: 2
-                      }}
-                    >
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Total Employees
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {analytics?.total_employees ?? fallbackAnalytics.total_employees}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card
-                      elevation={1}
-                      sx={{ p: 2, background: darkMode ? '#111827' : '#f4f8ff', borderRadius: 2 }}
-                    >
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Avg Rating
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {(analytics?.average_performance ?? fallbackAnalytics.average_performance).toFixed(1)}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card
-                      elevation={1}
-                      sx={{ p: 2, background: darkMode ? '#111827' : '#f4f8ff', borderRadius: 2 }}
-                    >
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Promotion Ready
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {analytics?.promotion_ready ?? fallbackAnalytics.promotion_ready}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Card
-                      elevation={1}
-                      sx={{ p: 2, background: darkMode ? '#111827' : '#f4f8ff', borderRadius: 2 }}
-                    >
-                      <Typography variant="subtitle2" color="text.secondary">
-                        Needs Training
-                      </Typography>
-                      <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {analytics?.needs_training ?? fallbackAnalytics.needs_training}
-                      </Typography>
-                    </Card>
-                  </Grid>
+                <Box sx={{ mb: 2.5 }}>
+                  <Typography variant="h5">
+                    Workforce Snapshot
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Real-time performance indicators with resilient API fallbacks.
+                  </Typography>
+                </Box>
+                <Grid container spacing={2} alignItems="stretch">
+                  {snapshotCards.map(card => (
+                    <Grid item xs={12} sm={6} lg={3} key={card.label} sx={{ display: 'flex' }}>
+                      <Card
+                        elevation={0}
+                        sx={{
+                          p: 2.25,
+                          width: '100%',
+                          minHeight: 150,
+                          borderRadius: 2,
+                          border: '1px solid #e2e8f0',
+                          background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+                          boxShadow: 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, alignItems: 'flex-start' }}>
+                          <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 800 }}>
+                            {card.label}
+                          </Typography>
+                          <Box sx={{ width: 34, height: 34, borderRadius: 2, display: 'grid', placeItems: 'center', color: card.color, background: `${card.color}14` }}>
+                            {card.icon}
+                          </Box>
+                        </Box>
+                        <Box>
+                          <Typography variant="h4" sx={{ color: '#0f172a', lineHeight: 1 }}>
+                            {card.value}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+                            {card.caption}
+                          </Typography>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  ))}
                 </Grid>
               </Card>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <Card elevation={3} sx={{ p: 2, borderRadius: 3 }}>
+            <Grid item xs={12} xl={4}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                 <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
-                    <Typography variant="subtitle2" color="text.secondary">
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
                       Team Performance
                     </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                      Quick Insights
+                    <Typography variant="h6">
+                      Status Mix
                     </Typography>
                   </Box>
-                  <PieChartIcon sx={{ fontSize: 32, color: '#1976d2' }} />
+                  <Box sx={{ width: 42, height: 42, borderRadius: 2, display: 'grid', placeItems: 'center', background: '#eff6ff', color: 'primary.main' }}>
+                    <PieChartIcon />
+                  </Box>
                 </Box>
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={analytics?.status_breakdown ?? fallbackAnalytics.status_breakdown}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      labelLine={false}
-                      label={({ name, percent }) => `${name}: ${Math.round(percent * 100)}%`}
-                    >
-                      {(analytics?.status_breakdown ?? fallbackAnalytics.status_breakdown).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color ?? chartColors[index % chartColors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Box sx={{ height: { xs: 280, md: 310 } }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={analytics?.status_breakdown ?? fallbackAnalytics.status_breakdown}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={88}
+                        innerRadius={48}
+                        paddingAngle={3}
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${Math.round(percent * 100)}%`}
+                      >
+                        {(analytics?.status_breakdown ?? fallbackAnalytics.status_breakdown).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color ?? chartColors[index % chartColors.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: cardShadow }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
               </Card>
             </Grid>
           </Grid>
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
+          <Grid container spacing={3} sx={{ mt: 0 }} alignItems="stretch">
             <Grid item xs={12} lg={8}>
-              <Card elevation={3} sx={{ p: 3, borderRadius: 3 }}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                   <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    <Typography variant="h6">
                       Performance Trend
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -566,49 +687,62 @@ export default function App() {
                     </Typography>
                   </Box>
                 </Box>
-                <ResponsiveContainer width="100%" height={320}>
-                  <LineChart data={analytics?.performance_trend ?? fallbackAnalytics.performance_trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e0e7ff'} />
-                    <XAxis dataKey="month" stroke={darkMode ? '#e2e8f0' : '#334155'} />
-                    <YAxis stroke={darkMode ? '#e2e8f0' : '#334155'} domain={[0, 5]} />
-                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#111827' : '#ffffff', borderRadius: 12 }} />
-                    <Legend />
-                    <Line type="monotone" dataKey="average" stroke="#1976d2" strokeWidth={3} dot={{ r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <Box sx={chartContainerSx}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={analytics?.performance_trend ?? fallbackAnalytics.performance_trend} margin={{ top: 8, right: 20, left: -8, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="month" stroke="#64748b" tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" tickLine={false} axisLine={false} domain={[0, 5]} />
+                      <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: cardShadow }} />
+                      <Legend />
+                      <Line type="monotone" dataKey="average" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
               </Card>
             </Grid>
 
             <Grid item xs={12} lg={4}>
-              <Card elevation={3} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
+                <Typography variant="h6" sx={{ mb: 0.5 }}>
                   Performance Distribution
                 </Typography>
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={analytics?.performance_distribution ?? fallbackAnalytics.performance_distribution}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#334155' : '#e2e7ff'} />
-                    <XAxis dataKey="name" stroke={darkMode ? '#e2e8f0' : '#334155'} />
-                    <YAxis stroke={darkMode ? '#e2e8f0' : '#334155'} />
-                    <Tooltip contentStyle={{ backgroundColor: darkMode ? '#111827' : '#ffffff', borderRadius: 12 }} />
-                    <Bar dataKey="count" fill="#1976d2" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Employee counts by score range.
+                </Typography>
+                <Box sx={chartContainerSx}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={analytics?.performance_distribution ?? fallbackAnalytics.performance_distribution} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                      <XAxis dataKey="name" stroke="#64748b" tickLine={false} axisLine={false} />
+                      <YAxis stroke="#64748b" tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: cardShadow }} />
+                      <Bar dataKey="count" fill="#2563eb" radius={[8, 8, 0, 0]} maxBarSize={44} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
               </Card>
             </Grid>
           </Grid>
 
-          <Card elevation={3} sx={{ p: 3, mt: 3, borderRadius: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+          <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, mt: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap', alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}>
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                <Typography variant="h6">
                   Employee Performance Table
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   Search, review, and compare employee quality metrics at a glance.
                 </Typography>
               </Box>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-                <Button variant="contained" color="primary" onClick={handleOpenDialog}>
+              <Box sx={{ display: 'flex', gap: 1.5, flexWrap: { xs: 'wrap', sm: 'nowrap' }, alignItems: 'center', width: { xs: '100%', md: 'auto' } }}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpenDialog}
+                  startIcon={<AddIcon />}
+                  sx={{ height: 42, px: 2.25, width: { xs: '100%', sm: 'auto' } }}
+                >
                   Add Employee
                 </Button>
                 <TextField
@@ -616,7 +750,14 @@ export default function App() {
                   placeholder="Search by name or email"
                   value={search}
                   onChange={event => setSearch(event.target.value)}
-                  sx={{ width: { xs: '100%', sm: 300 } }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    )
+                  }}
+                  sx={{ width: { xs: '100%', sm: 320 }, '& .MuiOutlinedInput-root': { borderRadius: 2, background: '#ffffff' } }}
                 />
               </Box>
             </Box>
@@ -625,8 +766,8 @@ export default function App() {
                 <CircularProgress />
               </Box>
             ) : (
-              <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
-                <Table>
+              <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #e2e8f0', borderRadius: 2, overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 980 }}>
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 700 }}>Employee</TableCell>
@@ -647,14 +788,21 @@ export default function App() {
                       </TableRow>
                     ) : (
                       filteredEmployees.map(emp => (
-                        <TableRow key={emp.employee_id} hover>
+                        <TableRow
+                          key={emp.employee_id}
+                          hover
+                          sx={{
+                            '&:last-child td': { borderBottom: 0 },
+                            '&:hover': { backgroundColor: '#f8fafc' }
+                          }}
+                        >
                           <TableCell sx={{ minWidth: 180 }}>
                             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                               {emp.full_name ?? emp.name ?? 'Unknown Employee'}
                             </Typography>
                           </TableCell>
-                          <TableCell>{emp.email}</TableCell>
-                          <TableCell>{emp.role}</TableCell>
+                          <TableCell sx={{ color: 'text.secondary' }}>{emp.email}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{emp.role}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                               <Typography sx={{ fontWeight: 700 }}>{emp.performance_score.toFixed(1)}</Typography>
@@ -665,8 +813,8 @@ export default function App() {
                               />
                             </Box>
                           </TableCell>
-                          <TableCell>{emp.skill_gap}</TableCell>
-                          <TableCell sx={{ maxWidth: 260 }}>{emp.development_plan}</TableCell>
+                          <TableCell sx={{ color: 'text.secondary' }}>{emp.skill_gap}</TableCell>
+                          <TableCell sx={{ maxWidth: 280, color: 'text.secondary' }}>{emp.development_plan}</TableCell>
                           <TableCell>
                             <Chip
                               label={emp.status}
@@ -690,7 +838,7 @@ export default function App() {
           </Card>
 
           {error && (
-            <Box sx={{ mt: 3, p: 3, borderRadius: 3, backgroundColor: darkMode ? '#111827' : '#f8fafc' }}>
+            <Box sx={{ mt: 3, p: 3, borderRadius: 2, border: subtleBorder, backgroundColor: '#ffffff' }}>
               <Typography color="error" sx={{ fontWeight: 700 }}>
                 Unable to load live data.
               </Typography>
