@@ -48,7 +48,9 @@ import {
   BarChart as BarChartIcon,
   PieChart as PieChartIcon,
   Add as AddIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  Logout as LogoutIcon,
+  Badge as BadgeIcon
 } from '@mui/icons-material';
 import {
   LineChart,
@@ -69,6 +71,7 @@ import {
 const drawerWidth = 250;
 const cardShadow = '0 18px 45px rgba(15, 23, 42, 0.08)';
 const subtleBorder = '1px solid rgba(148, 163, 184, 0.22)';
+const demoRoles = ['HR Admin', 'Manager', 'Employee'];
 
 const fallbackEmployees = [
   {
@@ -170,6 +173,8 @@ const getEmployeesFromApi = async () => {
 };
 
 export default function App() {
+  const [authRole, setAuthRole] = useState('');
+  const [selectedLoginRole, setSelectedLoginRole] = useState('HR Admin');
   const [employees, setEmployees] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [search, setSearch] = useState('');
@@ -324,6 +329,16 @@ export default function App() {
   };
 
   const handleOpenDialog = () => setDialogOpen(true);
+  const handleLogin = () => setAuthRole(selectedLoginRole);
+  const handleLogout = () => {
+    setAuthRole('');
+    setSidebarOpen(false);
+    setDialogOpen(false);
+    setSearch('');
+    setStatusFilter('all');
+    setRoleFilter('all');
+  };
+
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setFormData({
@@ -464,6 +479,11 @@ export default function App() {
       .slice(0, 4)
   ), [employees]);
 
+  const isHrAdmin = authRole === 'HR Admin';
+  const isManager = authRole === 'Manager';
+  const isEmployee = authRole === 'Employee';
+  const activeEmployee = employees[0] ?? normalizeEmployee(fallbackEmployees[0]);
+
   const chartColors = ['#2563eb', '#0f766e', '#f59e0b', '#7c3aed'];
   const snapshotCards = [
     {
@@ -495,6 +515,86 @@ export default function App() {
       icon: <WorkIcon />
     }
   ];
+  const visibleSnapshotCards = isManager
+    ? snapshotCards.filter(card => card.label !== 'Total Employees')
+    : snapshotCards;
+  const navigationItems = isEmployee
+    ? [
+        { label: 'My Dashboard', icon: <DashboardIcon /> },
+        { label: 'Development Plan', icon: <WorkIcon /> },
+        { label: 'Profile', icon: <BadgeIcon /> }
+      ]
+    : [
+        { label: 'Overview', icon: <DashboardIcon /> },
+        { label: 'Employees', icon: <PeopleIcon /> },
+        { label: 'Analytics', icon: <AssessmentIcon /> },
+        { label: 'Insights', icon: <BarChartIcon /> },
+        { label: 'Performance', icon: <WorkIcon /> }
+      ];
+
+  if (!authRole) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'grid',
+            placeItems: 'center',
+            px: 2,
+            py: 4,
+            background: 'linear-gradient(135deg, #f8fafc 0%, #e0f2fe 45%, #f1f5f9 100%)'
+          }}
+        >
+          <Card elevation={0} sx={{ ...panelSx, width: '100%', maxWidth: 520, p: { xs: 3, md: 4 } }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+              <Box sx={{ width: 42, height: 42, borderRadius: 2, display: 'grid', placeItems: 'center', background: '#2563eb', color: '#ffffff' }}>
+                <DashboardIcon />
+              </Box>
+              <Box>
+                <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 800, letterSpacing: '0.08em' }}>
+                  TalentOps Demo
+                </Typography>
+                <Typography variant="h5" sx={{ lineHeight: 1.1 }}>
+                  Workforce Analytics Login
+                </Typography>
+              </Box>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Select a demo role to preview the dashboard experience for HR, managers, or employees.
+            </Typography>
+            <TextField
+              select
+              fullWidth
+              label="Demo role"
+              value={selectedLoginRole}
+              onChange={event => setSelectedLoginRole(event.target.value)}
+              sx={{ mb: 2.5, '& .MuiOutlinedInput-root': { borderRadius: 2, background: '#ffffff' } }}
+            >
+              {demoRoles.map(role => (
+                <MenuItem key={role} value={role}>{role}</MenuItem>
+              ))}
+            </TextField>
+            <Button fullWidth variant="contained" size="large" onClick={handleLogin} sx={{ height: 48 }}>
+              Continue as {selectedLoginRole}
+            </Button>
+            <Box sx={{ mt: 2.5, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {demoRoles.map(role => (
+                <Chip
+                  key={role}
+                  label={role}
+                  size="small"
+                  color={selectedLoginRole === role ? 'primary' : 'default'}
+                  variant={selectedLoginRole === role ? 'filled' : 'outlined'}
+                  onClick={() => setSelectedLoginRole(role)}
+                />
+              ))}
+            </Box>
+          </Card>
+        </Box>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider theme={theme}>
@@ -526,6 +626,16 @@ export default function App() {
                 Employee Performance Dashboard
               </Typography>
             </Box>
+            <Chip label={authRole} color="primary" variant="outlined" sx={{ display: { xs: 'none', sm: 'inline-flex' } }} />
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleLogout}
+              startIcon={<LogoutIcon />}
+              sx={{ height: 38 }}
+            >
+              Logout
+            </Button>
           </Toolbar>
         </AppBar>
 
@@ -564,13 +674,7 @@ export default function App() {
             </Typography>
           </Box>
           <List sx={{ px: 1.5 }}>
-            {[
-              { label: 'Overview', icon: <DashboardIcon /> },
-              { label: 'Employees', icon: <PeopleIcon /> },
-              { label: 'Analytics', icon: <AssessmentIcon /> },
-              { label: 'Insights', icon: <BarChartIcon /> },
-              { label: 'Performance', icon: <WorkIcon /> }
-            ].map(item => (
+            {navigationItems.map(item => (
               <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
                 <ListItemButton
                   sx={{
@@ -605,14 +709,87 @@ export default function App() {
             <Box sx={{ my: { xs: 1.5, md: 1.75 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
               <Box>
                 <Typography variant="h4" sx={{ mb: 0.75 }}>
-                  Workforce Analytics
+                  {isEmployee ? 'My Workforce Dashboard' : isManager ? 'Manager Team Analytics' : 'Workforce Analytics'}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                  Executive view of talent readiness, performance movement, and development priorities.
+                  {isEmployee
+                    ? 'Personal performance, development focus, and readiness overview.'
+                    : isManager
+                    ? 'Team-level performance signals, retention watch, and employee visibility.'
+                    : 'Executive view of talent readiness, performance movement, and development priorities.'}
                 </Typography>
               </Box>
             </Box>
 
+            {isEmployee ? (
+              <Grid container spacing={2.5} alignItems="stretch">
+                <Grid item xs={12} md={5}>
+                  <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'flex-start', mb: 3 }}>
+                      <Box>
+                        <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
+                          Personal Snapshot
+                        </Typography>
+                        <Typography variant="h5">
+                          {activeEmployee.full_name ?? activeEmployee.name ?? 'Employee'}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {activeEmployee.role}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={activeEmployee.status}
+                        color={activeEmployee.status === 'Promotion Ready' ? 'success' : activeEmployee.status === 'Needs Training' ? 'warning' : 'primary'}
+                        variant="outlined"
+                      />
+                    </Box>
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={6}>
+                        <Card elevation={0} sx={{ p: 2, border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>
+                            Performance
+                          </Typography>
+                          <Typography variant="h4">{activeEmployee.performance_score.toFixed(1)}</Typography>
+                        </Card>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Card elevation={0} sx={{ p: 2, border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>
+                            Readiness
+                          </Typography>
+                          <Typography variant="h6" sx={{ mt: 0.65 }}>{activeEmployee.status === 'Promotion Ready' ? 'Ready' : 'Developing'}</Typography>
+                        </Card>
+                      </Grid>
+                    </Grid>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} md={7}>
+                  <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
+                    <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
+                      Growth Plan
+                    </Typography>
+                    <Typography variant="h6" sx={{ mb: 2 }}>
+                      Development Focus
+                    </Typography>
+                    <Box sx={{ display: 'grid', gap: 1.5 }}>
+                      <Box sx={{ p: 2, borderRadius: 2, border: '1px solid #e2e8f0', background: '#f8fafc' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>
+                          Skill Gap
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 700 }}>{activeEmployee.skill_gap}</Typography>
+                      </Box>
+                      <Box sx={{ p: 2, borderRadius: 2, border: '1px solid #e2e8f0', background: '#ffffff' }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 800 }}>
+                          Recommended Plan
+                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 700 }}>{activeEmployee.development_plan}</Typography>
+                      </Box>
+                    </Box>
+                  </Card>
+                </Grid>
+              </Grid>
+            ) : (
+            <>
             <Grid container spacing={3} alignItems="stretch">
             <Grid item xs={12}>
               <Card
@@ -632,7 +809,7 @@ export default function App() {
                   </Typography>
                 </Box>
                 <Grid container spacing={1.5} alignItems="stretch">
-                  {snapshotCards.map(card => (
+                  {visibleSnapshotCards.map(card => (
                     <Grid item xs={12} sm={6} lg={3} key={card.label} sx={{ display: 'flex' }}>
                       <Card
                         elevation={0}
@@ -726,6 +903,7 @@ export default function App() {
               </Card>
             </Grid>
 
+            {isHrAdmin && (
             <Grid item xs={12} lg={5} xl={5}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
@@ -752,6 +930,7 @@ export default function App() {
                 </Box>
               </Card>
             </Grid>
+            )}
 
             <Grid item xs={12} lg={3} xl={3}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
@@ -906,6 +1085,7 @@ export default function App() {
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 1.5, flexWrap: { xs: 'wrap', sm: 'nowrap' }, alignItems: 'center', width: { xs: '100%', md: 'auto' } }}>
+                {isHrAdmin && (
                 <Button
                   variant="contained"
                   color="primary"
@@ -915,6 +1095,7 @@ export default function App() {
                 >
                   Add Employee
                 </Button>
+                )}
               </Box>
             </Box>
             <Box
@@ -1042,6 +1223,8 @@ export default function App() {
               </TableContainer>
             )}
           </Card>
+          </>
+            )}
 
           {error && (
             <Box sx={{ mt: 3, p: 3, borderRadius: 2, border: subtleBorder, backgroundColor: '#ffffff' }}>
