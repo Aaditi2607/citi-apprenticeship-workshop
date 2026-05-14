@@ -271,7 +271,7 @@ export default function App() {
     background: '#ffffff'
   };
   const chartContainerSx = {
-    height: { xs: 280, md: 320 },
+    height: { xs: 250, md: 280, lg: 300 },
     minWidth: 0
   };
 
@@ -550,31 +550,26 @@ export default function App() {
           component="main"
           sx={{
             flexGrow: 1,
-            px: { xs: 2, sm: 3, lg: 4 },
-            py: { xs: 2, md: 3 },
+            px: { xs: 2, sm: 3, lg: 3.5, xl: 4 },
+            py: { xs: 2, md: 2.5 },
             width: { md: `calc(100% - ${drawerWidth}px)` }
           }}
         >
           <Toolbar />
-          <Box sx={{ my: { xs: 2, md: 3 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-            <Box>
-              <Typography variant="h4" sx={{ mb: 0.75 }}>
-                Workforce Analytics
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Executive view of talent readiness, performance movement, and development priorities.
-              </Typography>
+          <Box sx={{ width: '100%', maxWidth: 1680, mx: 'auto' }}>
+            <Box sx={{ my: { xs: 2, md: 2.5 }, display: 'flex', justifyContent: 'space-between', alignItems: { xs: 'flex-start', md: 'center' }, gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+              <Box>
+                <Typography variant="h4" sx={{ mb: 0.75 }}>
+                  Workforce Analytics
+                </Typography>
+                <Typography variant="body1" color="text.secondary">
+                  Executive view of talent readiness, performance movement, and development priorities.
+                </Typography>
+              </Box>
             </Box>
-            <Chip
-              label="Live dashboard"
-              color="primary"
-              variant="outlined"
-              sx={{ background: '#eff6ff', borderColor: '#bfdbfe' }}
-            />
-          </Box>
 
-          <Grid container spacing={3} alignItems="stretch">
-            <Grid item xs={12} xl={8}>
+            <Grid container spacing={3} alignItems="stretch">
+            <Grid item xs={12}>
               <Card
                 elevation={0}
                 sx={{
@@ -632,9 +627,12 @@ export default function App() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} xl={4}>
-              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
-                <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            </Grid>
+
+            <Grid container spacing={3} sx={{ mt: 3 }} alignItems="stretch">
+            <Grid item xs={12} lg={4} xl={3}>
+              <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 2.5 }, height: '100%' }}>
+                <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Box>
                     <Typography variant="overline" color="text.secondary" sx={{ fontWeight: 800 }}>
                       Team Performance
@@ -643,11 +641,11 @@ export default function App() {
                       Status Mix
                     </Typography>
                   </Box>
-                  <Box sx={{ width: 42, height: 42, borderRadius: 2, display: 'grid', placeItems: 'center', background: '#eff6ff', color: 'primary.main' }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: 2, display: 'grid', placeItems: 'center', background: '#eff6ff', color: 'primary.main' }}>
                     <PieChartIcon />
                   </Box>
                 </Box>
-                <Box sx={{ height: { xs: 280, md: 310 } }}>
+                <Box sx={chartContainerSx}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -656,26 +654,24 @@ export default function App() {
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius={88}
-                        innerRadius={48}
+                        outerRadius="78%"
+                        innerRadius="45%"
                         paddingAngle={3}
                         labelLine={false}
-                        label={({ name, percent }) => `${name}: ${Math.round(percent * 100)}%`}
                       >
                         {(analytics?.status_breakdown ?? fallbackAnalytics.status_breakdown).map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color ?? chartColors[index % chartColors.length]} />
                         ))}
                       </Pie>
                       <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: cardShadow }} />
+                      <Legend verticalAlign="bottom" height={28} />
                     </PieChart>
                   </ResponsiveContainer>
                 </Box>
               </Card>
             </Grid>
-          </Grid>
 
-          <Grid container spacing={3} sx={{ mt: 0 }} alignItems="stretch">
-            <Grid item xs={12} lg={8}>
+            <Grid item xs={12} lg={5} xl={6}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
                   <Box>
@@ -702,7 +698,7 @@ export default function App() {
               </Card>
             </Grid>
 
-            <Grid item xs={12} lg={4}>
+            <Grid item xs={12} lg={3} xl={3}>
               <Card elevation={0} sx={{ ...panelSx, p: { xs: 2.25, md: 3 }, height: '100%' }}>
                 <Typography variant="h6" sx={{ mb: 0.5 }}>
                   Performance Distribution
@@ -928,6 +924,7 @@ export default function App() {
               {snackbar.message}
             </Alert>
           </Snackbar>
+          </Box>
         </Box>
       </Box>
     </ThemeProvider>
