@@ -1,90 +1,225 @@
-"""
-Sample code: Hello World with PostgreSQL and MongoDB connectivity.
-"""
+# import json
+
+# # CORS headers to allow React frontend to communicate with this Lambda
+# CORS_HEADERS = {
+#     "Access-Control-Allow-Origin": "*",
+#     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+#     "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+#     "Content-Type": "application/json"
+# }
+
+# # Mock employee data for ACME Inc. Performance Platform
+# EMPLOYEES = [
+#     {
+#         "id": "EMP001",
+#         "name": "Priya Sharma",
+#         "role": "Senior Software Engineer",
+#         "performance_score": 4.7,
+#         "skill_gap": "System Design",
+#         "development_plan": "Complete AWS Solutions Architect Certification",
+#         "status": "High Achiever"
+#     },
+#     {
+#         "id": "EMP002",
+#         "name": "Rahul Mehta",
+#         "role": "Frontend Developer",
+#         "performance_score": 3.2,
+#         "skill_gap": "React Hooks",
+#         "development_plan": "Complete React Advanced Patterns Course",
+#         "status": "Needs Training"
+#     },
+#     {
+#         "id": "EMP003",
+#         "name": "Ananya Iyer",
+#         "role": "Data Analyst",
+#         "performance_score": 4.5,
+#         "skill_gap": "Machine Learning",
+#         "development_plan": "Enroll in AWS ML Specialty Certification",
+#         "status": "High Achiever"
+#     },
+#     {
+#         "id": "EMP004",
+#         "name": "Karan Patel",
+#         "role": "DevOps Engineer",
+#         "performance_score": 2.8,
+#         "skill_gap": "Kubernetes Orchestration",
+#         "development_plan": "Complete CKA (Certified Kubernetes Administrator) Course",
+#         "status": "Needs Training"
+#     },
+#     {
+#         "id": "EMP005",
+#         "name": "Sneha Reddy",
+#         "role": "Product Manager",
+#         "performance_score": 4.9,
+#         "skill_gap": "Financial Modelling",
+#         "development_plan": "Complete Product-Led Growth Strategy Workshop",
+#         "status": "Promotion Ready"
+#     }
+# ]
+
+
+# def handler(event, context):
+#     """
+#     AWS Lambda handler for ACME Inc. Employee Performance Platform.
+
+#     Supports:
+#       - OPTIONS  -> CORS preflight response
+#       - GET      -> Returns full list of employees
+#       - Any other method -> 405 Method Not Allowed
+#     """
+
+#     http_method = event.get("httpMethod", "GET")
+
+#     # Handle CORS preflight request from browser
+#     if http_method == "OPTIONS":
+#         return {
+#             "statusCode": 200,
+#             "headers": CORS_HEADERS,
+#             "body": json.dumps({"message": "CORS preflight OK"})
+#         }
+
+#     # Handle GET: return employee list
+#     if http_method == "GET":
+#         return {
+#             "statusCode": 200,
+#             "headers": CORS_HEADERS,
+#             "body": json.dumps({
+#                 "success": True,
+#                 "count": len(EMPLOYEES),
+#                 "employees": EMPLOYEES
+#             })
+#         }
+
+#     # Any other HTTP method is not supported
+#     return {
+#         "statusCode": 405,
+#         "headers": CORS_HEADERS,
+#         "body": json.dumps({
+#             "success": False,
+#             "message": f"Method '{http_method}' not allowed. Use GET."
+#         })
+#     }
 
 import json
-import logging
 import os
-from postgres_service import get_postgres_version
-from mongo_service import get_mongo_version
+import psycopg2
+import psycopg2.extras
 
-# Configure logging for Lambda
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+# ── DB connection ────────────────────────────────────────────────────────────
 
-# PostgreSQL connection string built from environment variables with sensible defaults
-PG_CONFIG = (
-    f"host={os.getenv('POSTGRES_HOST', 'localhost')} "
-    f"port={os.getenv('POSTGRES_PORT', '5432')} "
-    f"user={os.getenv('POSTGRES_USER', 'test')} "
-    f"password={os.getenv('POSTGRES_PASS', 'test')} "
-    f"dbname={os.getenv('POSTGRES_NAME', 'test')} "
-    f"connect_timeout=15"
-)
+def get_connection():
+    # Hardcoded to use the workshop's Docker-to-Host bridge IP
+    return psycopg2.connect(
+        host="172.17.0.1",
+        dbname="postgres",
+        user="postgres",
+        password="password",
+        connect_timeout=5,
+    )
 
-# MongoDB configuration loaded from environment variables.
-# None when MONGO_HOST is not set (e.g. DocumentDB disabled on AWS).
-_mongo_host = os.getenv("MONGO_HOST", "")
-_mongo_user = os.getenv("MONGO_USER", "")
-_mongo_pass = os.getenv("MONGO_PASS", "")
-_is_local = os.getenv("IS_LOCAL", "false") == "true"
-MONGO_CONFIG = {
-    "host": _mongo_host,
-    "port": int(os.getenv("MONGO_PORT", "27017")),
-    "serverSelectionTimeoutMS": 5000,
-    "socketTimeoutMS": 45000,
-    **({"username": _mongo_user, "password": _mongo_pass, "authSource": os.getenv("MONGO_NAME", "admin")} if _mongo_user else {}),
-    **({"tls": True, "tlsAllowInvalidCertificates": True, "retryWrites": False} if not _is_local else {}),
-} if _mongo_host else None
+# ── Ensure table exists ──────────────────────────────────────────────────────
 
-def handler(event=None, context=None):
-    """
-    Sample code: Hello World with PostgreSQL and MongoDB connectivity.
+CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS employees (
+    id                SERIAL PRIMARY KEY,
+    name              VARCHAR(255)   NOT NULL,
+    role              VARCHAR(255)   NOT NULL,
+    performance_score NUMERIC(4,2)   DEFAULT 0,
+    skill_gap         VARCHAR(255)   DEFAULT '',
+    status            VARCHAR(100)   DEFAULT 'Active'
+);
+"""
 
-    Args:
-        event (dict, optional): The Lambda event
-        context (object, optional): The Lambda context
+def ensure_table(cur):
+    cur.execute(CREATE_TABLE_SQL)
 
-    Returns:
-        dict: A response object with statusCode, headers, and body
-            - statusCode: 200 on success, 500 on error
-            - headers: Content-Type set to application/json
-            - body: JSON string with database versions or error message
-    """
-    logger.debug("Received event: %s", event)
-    logger.debug("Received context: %s", context)
+# ── CORS headers ─────────────────────────────────────────────────────────────
+
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin":  "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, x-user-role",
+}
+
+def response(status_code, body):
+    return {
+        "statusCode": status_code,
+        "headers": {**CORS_HEADERS, "Content-Type": "application/json"},
+        "body": json.dumps(body),
+    }
+
+# ── Handler ───────────────────────────────────────────────────────────────────
+
+def handler(event, context):
+    method = event.get("httpMethod", "GET").upper()
+
+    # Preflight
+    if method == "OPTIONS":
+        return {"statusCode": 200, "headers": CORS_HEADERS, "body": ""}
+
+    # RBAC – Viewers cannot write
+    user_role = (event.get("headers") or {}).get("x-user-role", "")
+    if method == "POST" and user_role == "Viewer":
+        return response(403, {"error": "Forbidden: Viewers cannot perform POST requests."})
 
     try:
-        # Retrieve versions from both databases
-        pg_version = get_postgres_version(PG_CONFIG)
-        mongo_version = get_mongo_version(MONGO_CONFIG) if MONGO_CONFIG else None
+        conn = get_connection()
+        conn.autocommit = False
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        # Log retrieved versions for debugging
-        logger.info("PostgreSQL Version: %s", pg_version)
-        logger.info("MongoDB Version: %s", mongo_version)
+        ensure_table(cur)
 
-        # Return successful response with database versions
-        return {
-            "statusCode": 200,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({
-                "message": "Hello, World!",
-                "postgres": pg_version,
-                "mongodb": mongo_version,
-            }),
-        }
+        # ── GET ──────────────────────────────────────────────────────────────
+        if method == "GET":
+            cur.execute("SELECT * FROM employees ORDER BY id;")
+            rows = cur.fetchall()
+            conn.commit()
+            return response(200, {
+                "success": True,
+                "count": len(rows),
+                "employees": [dict(r) for r in rows],
+            })
+
+        # ── POST ─────────────────────────────────────────────────────────────
+        if method == "POST":
+            try:
+                body = json.loads(event.get("body") or "{}")
+            except json.JSONDecodeError:
+                return response(400, {"error": "Invalid JSON body."})
+
+            # Validate required fields
+            missing = [f for f in ("name", "role") if not body.get(f)]
+            if missing:
+                return response(400, {"error": f"Missing required fields: {', '.join(missing)}"})
+
+            cur.execute(
+                """
+                INSERT INTO employees (name, role, performance_score, skill_gap, status)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING *;
+                """,
+                (
+                    body["name"],
+                    body["role"],
+                    body.get("performance_score", 0),
+                    body.get("skill_gap", ""),
+                    body.get("status", "Active"),
+                ),
+            )
+            new_row = dict(cur.fetchone())
+            conn.commit()
+            return response(201, {"success": True, "employee": new_row})
+
+        # ── Unsupported method ────────────────────────────────────────────────
+        return response(405, {"error": f"Method {method} not allowed."})
+
+    except psycopg2.OperationalError as e:
+        return response(503, {"error": "Database connection failed.", "detail": str(e)})
     except Exception as e:
-        # Return error response on any exception
-        logger.error("Handler error: %s", str(e))
-        return {
-            "statusCode": 500,
-            "headers": {"Content-Type": "application/json"},
-            "body": json.dumps({
-                "error": "Failed to retrieve database versions",
-                "message": str(e),
-            }),
-        }
-
-# Main entry point for local testing
-if __name__ == "__main__":
-    print(handler())
+        return response(500, {"error": "Internal server error.", "detail": str(e)})
+    finally:
+        try:
+            if 'cur' in locals(): cur.close()
+            if 'conn' in locals(): conn.close()
+        except Exception:
+            pass
